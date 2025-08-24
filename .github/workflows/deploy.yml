@@ -37,10 +37,10 @@ jobs:
     - name: Deploy to Aliyun Server
       uses: appleboy/ssh-action@v0.1.5
       with:
-        host: ${{ secrets.ALIYUN_HOST }}
+        host: 47.95.7.158
         username: ${{ secrets.ALIYUN_USERNAME }}
         key: ${{ secrets.ALIYUN_SSH_KEY }}
-        port: ${{ secrets.ALIYUN_PORT }}
+        port: 22
         script: |
           # 备份旧版本
           if [ -d "/var/www/blog_backup" ]; then
@@ -56,10 +56,10 @@ jobs:
     - name: Copy files to server
       uses: appleboy/scp-action@v0.1.4
       with:
-        host: ${{ secrets.ALIYUN_HOST }}
+        host: 47.95.7.158
         username: ${{ secrets.ALIYUN_USERNAME }}
         key: ${{ secrets.ALIYUN_SSH_KEY }}
-        port: ${{ secrets.ALIYUN_PORT }}
+        port: 22
         source: "public/*"
         target: "/var/www/blog/"
         strip_components: 1
@@ -67,10 +67,10 @@ jobs:
     - name: Restart Nginx (if needed)
       uses: appleboy/ssh-action@v0.1.5
       with:
-        host: ${{ secrets.ALIYUN_HOST }}
+        host: 47.95.7.158
         username: ${{ secrets.ALIYUN_USERNAME }}
         key: ${{ secrets.ALIYUN_SSH_KEY }}
-        port: ${{ secrets.ALIYUN_PORT }}
+        port: 22
         script: |
           # 设置文件权限
           chown -R www-data:www-data /var/www/blog
