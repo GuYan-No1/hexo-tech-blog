@@ -1,0 +1,85 @@
+name: Deploy Hexo Blog to Aliyun Server
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        submodules: false # Disable submodules (themes)
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '16'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: |
+        npm ci
+        
+    - name: Clean cache
+      run: |
+        npx hexo clean
+        
+    - name: Generate static files
+      run: |
+        npx hexo generate
+        
+    - name: Deploy to Aliyun Server
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.ALIYUN_HOST }}
+        username: ${{ secrets.ALIYUN_USERNAME }}
+        key: ${{ secrets.ALIYUN_SSH_KEY }}
+        port: ${{ secrets.ALIYUN_PORT }}
+        script: |
+          # 备份旧版本
+          if [ -d "/var/www/blog_backup" ]; then
+            rm -rf /var/www/blog_backup
+          fi
+          if [ -d "/var/www/blog" ]; then
+            mv /var/www/blog /var/www/blog_backup
+          fi
+          
+          # 创建新目录
+          mkdir -p /var/www/blog
+          
+    - name: Copy files to server
+      uses: appleboy/scp-action@v0.1.4
+      with:
+        host: ${{ secrets.ALIYUN_HOST }}
+        username: ${{ secrets.ALIYUN_USERNAME }}
+        key: ${{ secrets.ALIYUN_SSH_KEY }}
+        port: ${{ secrets.ALIYUN_PORT }}
+        source: "public/*"
+        target: "/var/www/blog/"
+        strip_components: 1
+        
+    - name: Restart Nginx (if needed)
+      uses: appleboy/ssh-action@v0.1.5
+      with:
+        host: ${{ secrets.ALIYUN_HOST }}
+        username: ${{ secrets.ALIYUN_USERNAME }}
+        key: ${{ secrets.ALIYUN_SSH_KEY }}
+        port: ${{ secrets.ALIYUN_PORT }}
+        script: |
+          # 设置文件权限
+          chown -R www-data:www-data /var/www/blog
+          chmod -R 755 /var/www/blog
+          
+          # 测试nginx配置
+          nginx -t
+          
+          # 重载nginx配置
+          systemctl reload nginx
+          
+          echo "Deployment completed successfully!"
